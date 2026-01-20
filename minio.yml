@@ -1,17 +1,50 @@
-# docker-compose.yml
-version: '3.8'
+# start-minio.ps1
+# 保存为 PowerShell 脚本运行
+Write-Host "正在启动 MinIO 服务..." -ForegroundColor Green
 
-services:
-  minio:
-    image: minio/minio:latest
-    container_name: minio
-    ports:
-      - "9000:9000"  # API端口
-      - "9001:9001"  # 控制台端口
-    environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
-    volumes:
-      - ./minio-data:/data
-    command: server /data --console-address ":9001"
-    restart: unless-stopped
+# 清理已存在的容器
+docker stop minio 2>$null
+docker rm minio 2>$null
+
+# 创建数据目录
+$minioPath = "C:\docker-data\minio"
+if (!(Test-Path $minioPath)) {
+    New-Item -ItemType Directory -Path $minioPath -Force
+}
+
+# 启动 MinIO 容器
+docker run -d `
+    --name minio `
+    --restart unless-stopped `
+    -p 9000:9000 `
+    -p 9001:9001 `
+    -e "MINIO_ROOT_USER=minioadmin" `
+    -e "MINIO_ROOT_PASSWORD=minioadmin" `
+    -e "MINIO_DOMAIN=localhost" `
+    -v "${minioPath}:/data" `
+    --health-cmd="curl --fail http://localhost:9000/minio/health/live || exit 1" `
+    --health-interval=30s `
+    --health-timeout=20s `
+    --health-retries=3 `
+    minio/minio:latest `
+    server /data --console-address ":9001"
+
+Write-Host "等待 MinIO 启动..." -ForegroundColor Yellow
+Start-Sleep -Seconds 10
+
+# 检查容器状态
+docker ps --filter "name=minio"
+
+# 测试连接
+Write-Host "测试 MinIO 连接..." -ForegroundColor Cyan
+try {
+    $response = Invoke-WebRequest -Uri "http://localhost:9000/minio/health/live" -UseBasicParsing -TimeoutSec 10
+    if ($response.StatusCode -eq 200) {
+        Write-Host "✅ MinIO 启动成功！" -ForegroundColor Green
+        Write-Host "管理控制台: http://localhost:9001" -ForegroundColor Cyan
+        Write-Host "用户名: minioadmin" -ForegroundColor Cyan
+        Write-Host "密码: minioadmin" -ForegroundColor Cyan
+    }
+} catch {
+    Write-Host "❌ MinIO 启动失败，请检查 Docker Desktop 是否运行正常" -ForegroundColor Red
+}
