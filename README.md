@@ -1,6 +1,8 @@
+ffmpeg -i 4320211.mp3 -f s16le -acodec pcm_s16le -ar 24000 -ac 1 output.pcm
+
 ffmpeg -f s16le -ar 24000 -ac 1 -i 4320211.pcm -ss 00:00:00 -t 00:00:20 -f s16le -ar 24000 -ac 1 -acodec pcm_s16le short.pcm
 
-ffplay -autoexit -f s16le short.pcm
+ffplay -autoexit -f s16le -acodec pcm_s16le -ar 24000 output.pcm
 
 # STT Model Evaluation Service Planning
 
