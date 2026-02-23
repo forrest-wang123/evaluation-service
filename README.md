@@ -5,82 +5,62 @@ ffmpeg -f s16le -ar 24000 -ac 1 -i 4320211.pcm -ss 00:00:00 -t 00:00:20 -f s16le
 ffplay -autoexit -f s16le -acodec pcm_s16le -ar 24000 output.pcm
 
 
+Strengths:
+
+You can start small with modest RDS instances and scale out as needed, making it budget-friendly for projects with predictable growth
+
+ShardingSphere supports multiple database types, giving you theoretical freedom to migrate away from AWS later
+
+You have complete control over how data is sharded, allowing you to optimize for your specific business logic
+
+Weaknesses:
+
+You're taking on significant operational burden—managing shard keys, keeping data balanced across nodes, and handling distributed transactions all become your responsibility
+
+Analytical queries that need to join data across shards perform terribly, forcing you to maintain a separate data warehouse for any serious reporting
+
+Write scalability is limited because each shard is still a single write node, and hot spots require manual intervention
+
+When RDS fails over, you're looking at 60-120 seconds of downtime plus whatever time the middleware takes to detect the new master
 
 
-单纯从项目的需求看，这是一个典型的OLAP项目（查询横跨Account， Cash， Fund。。。），适合采用数据仓库方案，擅长数据分析（列式存储，方便做表关联，）。
-考虑到将来要把写入需求也迁移到云上，可以数据存储采用两阶段方案：权限如何控制？
-1. 数据仓库（只读）: Redshift。
-a. 采用经典的数据仓库纬度建模方法论进行表设计：
-事实表：
-纬度表：
-2. 读写：
-a. ShardingSphere + RDS + Redshift;
-b. Aurora (+ ShardingSphere) + Redshift;
-c. TiDB
-数据迁移：
-a.Kafka + Kenesis + Lambda;
-b.Kafka + Flink
-Account
-- Id: Long
-- Birthday: Date
-- RPQ: Enum(Secure, Very Cautious, Caustious, Balanced, Adventurous, Speculative)
-- Country of residency: Enum
-- Nationality: Enum
-- Integrated Relationship Agreement: Enum(Deposits & Loads, Capital Market Products, Managed Product Categories), multiple values
-- Years on book: Date
-- On-shore/Off-shore
-- Accrued Investor: Boolean
-- Wealth Ready: Enum (UT Wealth Ready, Equity Wealth Ready, Structured Proudcts Wealth Ready, Bonds Wealth Ready)
-Investment
-- Account Id: Long
-- Fund Id: Long
-- Holding Start: Date
-- Holding End: Date
-- Holding Price: Numeric
-- Holding Amount: Numeric
-Fund
-- Id: Long
-- category: Reference, multiple values
-- house: Reference
-- name: String
-- Product code: String
-- Current price: Numeric
-Policy settlement
-Policy id: long
-Date Id: long
-Time Id: long
-Currency: enum
-Amount: long
-Insurance Policy
-- Id: Long
-- Account id: Long
-- Insurance Product Id: Long
-- Policy number
-- Premium settlement date
-- policy status
-- start date
-Insurance Proudct
-- id: long
-- category: Reference
-- product code: String
-- Insurer: String
-Cash Flow
-id: long
-account id: long
-one-time: boolean
-direction: enum (in, out)
-currency: enum
-amount: numeric
-TMD
-id: long
-account id: long
-currency: enum
-amount: numeric
-interest rate: numeric
-start date: date
-interest rate type: enum
-tenor: long
+Strengths:
 
-Date
+Performance is excellent—MySQL compatibility runs up to five times faster than standard MySQL, and PostgreSQL compatibility up to three times faster
 
-Time
+Storage grows automatically from 10GB to 128TB without any manual intervention
+
+High availability is genuinely hands-off, with failover completing in under 30 seconds and zero data loss
+
+Integration with the broader AWS ecosystem (Lambda, Kinesis, Redshift) is seamless and powerful
+
+Weaknesses:
+
+Write scalability hits a hard ceiling—you're always limited to a single primary node. Aurora's multi-master mode exists but comes with significant restrictions
+
+It's not truly HTAP; complex analytical queries still perform poorly, forcing you to export data to Redshift
+
+You're locking yourself into AWS completely. There's no on-premises option and no easy migration path to other clouds
+
+The pricing is premium—expect to pay 20-30% more than equivalent RDS instances
+
+
+Strengths:
+
+You get genuine HTAP capabilities—run complex analytical queries directly on your operational data without ETL pipelines or data duplication
+
+Write scalability is horizontal—every node can accept writes, and the system automatically balances data and load
+
+Strong consistency is baked in through the Raft protocol, giving you distributed transactions with ACID guarantees
+
+MySQL compatibility means most applications can migrate with minimal changes
+
+You're not locked into any vendor—it's open source and runs anywhere from on-premises to any cloud
+
+Weaknesses:
+
+There's a learning curve—you need to understand distributed system concepts like regions, placement drivers, and Raft to operate it effectively
+
+Single-node performance doesn't match Aurora's highly optimized engine; you need multiple nodes to see the real benefits
+
+Costs can be higher for small deployments, and self-hosting requires genuine distributed systems expertise
